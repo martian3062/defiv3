@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Groq Test Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <h2 class="text-center text-primary fw-bold">⚡ Groq Test Dashboard</h2>
+  <p class="text-muted text-center">Simulated performance metrics for Groq LLaMA models</p>
+
+  <!-- Model Selector -->
+  <div class="row mb-4">
+    <div class="col-md-6 offset-md-3">
+      <label for="groqModel" class="form-label fw-semibold">Choose Model:</label>
+      <select id="groqModel" class="form-select">
+        <option value="llama3-8b-8192">🦙 LLaMA-3 8B (8192 ctx)</option>
+        <option value="llama3-70b-8192">🦙 LLaMA-3 70B (8192 ctx)</option>
+        <option value="mixtral-8x7b">⚡ Mixtral 8x7B</option>
+        <option value="gemma-7b">✨ Gemma 7B</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="row">
+    <div class="col-md-6 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Response Latency (ms)</h5>
+          <canvas id="groqLatencyChart" height="100"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Tokens / Second</h5>
+          <canvas id="groqTPSChart" height="100"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div id="groqStatus" class="alert alert-info fw-bold text-center">
+    Select a model to start simulation...
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let selectedModel = "llama3-8b-8192";
+
+document.getElementById("groqModel").addEventListener("change", (e)=>{
+  selectedModel = e.target.value;
+  document.getElementById("groqStatus").textContent = `▶️ Running simulation for ${selectedModel}...`;
+});
+
+// Charts
+let latencyCtx = document.getElementById('groqLatencyChart').getContext('2d');
+let tpsCtx = document.getElementById('groqTPSChart').getContext('2d');
+
+let latencyChart = new Chart(latencyCtx, {
+  type: 'line',
+  data: { labels: [], datasets: [{
+      label: "Latency (ms)",
+      data: [],
+      borderColor: '#0dcaf0',
+      backgroundColor: 'rgba(13,202,240,0.2)',
+      fill: true,
+      tension: 0.3
+  }]},
+  options: { responsive: true, scales: { y: { beginAtZero: true }}}
+});
+
+let tpsChart = new Chart(tpsCtx, {
+  type: 'bar',
+  data: { labels: [], datasets: [{
+      label: "Tokens/sec",
+      data: [],
+      backgroundColor: '#6610f2'
+  }]},
+  options: { responsive: true, scales: { y: { beginAtZero: true }}}
+});
+
+// Simulated fetch
+async function fetchGroqData(){
+  if(!selectedModel) return;
+
+  // Random mock values per model
+  const latency = Math.floor(Math.random()*200)+50;  
+  const tps = Math.floor(Math.random()*100)+20;     
+  const ok = Math.random() > 0.1;                   
+
+  // Update latency chart
+  latencyChart.data.labels.push(new Date().toLocaleTimeString());
+  latencyChart.data.datasets[0].data.push(latency);
+  if(latencyChart.data.labels.length > 20){
+    latencyChart.data.labels.shift();
+    latencyChart.data.datasets[0].data.shift();
+  }
+  latencyChart.update();
+
+  // Update TPS chart
+  if(tpsChart.data.labels.length > 10){
+    tpsChart.data.labels.shift();
+    tpsChart.data.datasets[0].data.shift();
+  }
+  tpsChart.data.labels.push(new Date().toLocaleTimeString().split(" ")[0]);
+  tpsChart.data.datasets[0].data.push(tps);
+  tpsChart.update();
+
+  // Update status
+  const statusDiv = document.getElementById("groqStatus");
+  if(ok){
+    statusDiv.className = "alert alert-success fw-bold text-center";
+    statusDiv.textContent = `✅ ${selectedModel} | Latency: ${latency} ms | ${tps} tokens/sec`;
+  } else {
+    statusDiv.className = "alert alert-danger fw-bold text-center";
+    statusDiv.textContent = `❌ ${selectedModel} | Latency Spike at ${latency} ms`;
+  }
+}
+
+setInterval(fetchGroqData, 4000); // every 4s
+</script>
+{% endblock %}

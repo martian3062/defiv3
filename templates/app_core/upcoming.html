@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Home | defiv2{% endblock %}
+
+{% block content %}
+<div class="container py-5 text-center" x-data="{ showUpcoming: false }">
+
+  <!-- Title -->
+  <h1 class="display-4 fw-bold text-primary">defiv2 Assistant Demo</h1>
+  <p class="lead text-muted">
+    Showcasing: <strong>Explain → Simulate → Sign → Broadcast → Monitor</strong>
+  </p>
+
+  <!-- Existing Feature Buttons -->
+  <div class="row mt-5 g-3">
+    <div class="col-md-3"><a href="/wallet/" class="btn btn-lg btn-primary w-100 shadow-sm">💳 Wallet Demo</a></div>
+    <div class="col-md-3"><a href="/healthz/" class="btn btn-lg btn-success w-100 shadow-sm">🩺 Health Check</a></div>
+    <div class="col-md-3"><a href="/groq/test/ui/" class="btn btn-lg btn-info w-100 shadow-sm">⚡ Groq Test</a></div>
+    <div class="col-md-3"><a href="/simulate/" class="btn btn-lg btn-warning w-100 shadow-sm">🔬 QuickNode Simulate</a></div>
+  </div>
+
+  <!-- Toggle Button -->
+  <div class="mt-5">
+    <button @click="showUpcoming = !showUpcoming" class="btn btn-outline-dark">
+      Toggle Upcoming Section
+    </button>
+  </div>
+
+  <!-- Upcoming Section (with slide animation) -->
+  <div class="mt-4"
+       x-show="showUpcoming"
+       x-transition:enter="transition ease-out duration-500"
+       x-transition:enter-start="opacity-0 transform scale-y-0"
+       x-transition:enter-end="opacity-100 transform scale-y-100"
+       x-transition:leave="transition ease-in duration-400"
+       x-transition:leave-start="opacity-100 transform scale-y-100"
+       x-transition:leave-end="opacity-0 transform scale-y-0"
+       class="card shadow-sm p-4 text-center">
+
+    <h3 class="fw-bold text-primary">🚀 Upcoming: AI Agents & Semi-Autonomy</h3>
+    <p class="text-muted mt-2">
+      Future roadmap includes granting <strong>semi-autonomy using AI agents</strong>
+      (Eliza framework + LangGraph). These agents will <em>reduce gas fees</em>,
+      minimize <em>latency</em>, and lower <em>human intervention</em> while ensuring
+      a stable scope for DeFi in this dynamic market.
+    </p>
+
+    <!-- Example random graph placeholder -->
+    <canvas id="upcomingChart" height="100"></canvas>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Random demo chart inside Upcoming Section
+const ctx = document.getElementById('upcomingChart');
+if(ctx){
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: Array.from({length: 6}, (_,i)=>`T${i+1}`),
+      datasets: [{
+        label: 'Gas Fee Reduction (%)',
+        data: Array.from({length: 6}, ()=>Math.floor(Math.random()*20)+5),
+        borderColor: 'blue',
+        backgroundColor: 'rgba(0,123,255,0.2)',
+        tension: 0.4
+      }]
+    }
+  });
+}
+</script>
+{% endblock %}
+

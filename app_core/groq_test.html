@@ -1,0 +1,45 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Groq Test</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-dark text-light">
+
+<div class="container py-5">
+  <h1 class="mb-4 text-info">🚀 Groq Test Interactive UI</h1>
+
+  <div class="card shadow-lg">
+    <div class="card-body">
+      <h5 class="card-title">Test Result</h5>
+      
+      <p><strong>Status:</strong> 
+        {% if ok %}
+          <span class="badge bg-success">OK</span>
+        {% else %}
+          <span class="badge bg-danger">Failed</span>
+        {% endif %}
+      </p>
+
+      <p><strong>Response:</strong> 
+        <span class="text-warning">{{ response }}</span>
+      </p>
+
+      <button id="refresh" class="btn btn-outline-info mt-3">🔄 Refresh</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById("refresh").addEventListener("click", async () => {
+    let resp = await fetch("/groq/test/");
+    let data = await resp.json();
+    alert("Latest response: " + data.response);
+    location.reload();
+  });
+</script>
+
+</body>
+</html>

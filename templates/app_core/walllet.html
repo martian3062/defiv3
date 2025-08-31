@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Wallet | defiv2{% endblock %}
+
+{% block content %}
+<div class="container text-center mt-5">
+  <h2 class="fw-bold text-primary">🔗 Connect Your Wallet</h2>
+  <p class="text-muted">
+    Supports <strong>Coinbase Wallet</strong>, <strong>MetaMask</strong>, and <strong>WalletConnect (QR)</strong>
+  </p>
+
+  <!-- Buttons -->
+  <div class="d-flex justify-content-center gap-3 flex-wrap">
+    <button id="connectCoinbase" class="btn btn-primary btn-lg">Coinbase Wallet</button>
+    <button id="connectMetamask" class="btn btn-warning btn-lg">MetaMask</button>
+    <button id="connectWalletConnect" class="btn btn-success btn-lg">WalletConnect (QR)</button>
+  </div>
+
+  <!-- Status -->
+  <div class="mt-4">
+    <h5 id="walletStatus" class="text-muted">Not Connected</h5>
+    <p id="walletAddress" class="fw-semibold"></p>
+    <p id="walletBalance"></p>
+  </div>
+
+  <!-- Modal for QR -->
+  <div id="qrModal" class="d-none text-center mt-4">
+    <h5>Scan with your Wallet</h5>
+    <canvas id="qrcode"></canvas>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Coinbase Wallet SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@coinbase/wallet-sdk@3.7.2/dist/CoinbaseWalletSDK.min.js"></script>
+<!-- WalletConnect v1 Provider -->
+<script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
+<!-- QR Code Generator -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.0/build/qrcode.min.js"></script>
+
+<script>
+const APP_NAME = "defiv2 Demo";
+const APP_LOGO_URL = "https://avatars.githubusercontent.com/u/18060234";
+const RPC_URL = "{{ rpc_url }}";  // Django-injected QuickNode RPC
+const CHAIN_ID = 84532; // Base Sepolia
+
+let provider, selectedAccount = null;
+
+// -------- Coinbase Wallet --------
+document.getElementById("connectCoinbase").addEventListener("click", async () => {
+  try {
+    const coinbaseWallet = new window.CoinbaseWalletSDK({
+      appName: APP_NAME,
+      appLogoUrl: APP_LOGO_URL,
+      darkMode: true,
+    });
+    provider = coinbaseWallet.makeWeb3Provider(RPC_URL, CHAIN_ID);
+
+    const accounts = await provider.request({ method: "eth_requestAccounts" });
+    selectedAccount = accounts[0];
+    updateUI("Coinbase Wallet", selectedAccount);
+  } catch (err) {
+    console.error("Coinbase connect error:", err);
+    alert("⚠️ Failed to connect Coinbase Wallet.");
+  }
+});
+
+// -------- MetaMask --------
+document.getElementById("connectMetamask").addEventListener("click", async () => {
+  try {
+    if (!window.ethereum) {
+      alert("❌ MetaMask is not installed!");
+      return;
+    }
+    provider = window.ethereum;
+    const accounts = await provider.request({ method: "eth_requestAccounts" });
+    selectedAccount = accounts[0];
+    updateUI("MetaMask", selectedAccount);
+  } catch (err) {
+    console.error("MetaMask connect error:", err);
+    alert("⚠️ Failed to connect MetaMask.");
+  }
+});
+
+// -------- WalletConnect (QR) --------
+document.getElementById("connectWalletConnect").addEventListener("click", async () => {
+  try {
+    provider = new WalletConnectProvider.default({
+      rpc: { [CHAIN_ID]: RPC_URL },
+      qrcode: false, // disable built-in modal
+    });
+
+    await provider.enable();
+
+    // If URI exists, generate QR code
+    if (provider.connector.uri) {
+      document.getElementById("qrModal").classList.remove("d-none");
+      QRCode.toCanvas(
+        document.getElementById("qrcode"),
+        provider.connector.uri,
+        { width: 250 },
+        (err) => { if (err) console.error(err); }
+      );
+    }
+
+    const accounts = await provider.request({ method: "eth_accounts" });
+    selectedAccount = accounts[0];
+    updateUI("WalletConnect", selectedAccount);
+  } catch (err) {
+    console.error("WalletConnect error:", err);
+    alert("⚠️ Failed to connect via WalletConnect.");
+  }
+});
+
+// -------- UI + Balance Fetch --------
+async function updateUI(walletName, account) {
+  document.getElementById("walletStatus").innerText = `✅ Connected with ${walletName}`;
+  document.getElementById("walletAddress").innerText = account;
+
+  try {
+    const res = await fetch(RPC_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        method: "eth_getBalance",
+        params: [account, "latest"],
+        id: 1
+      })
+    });
+    const data = await res.json();
+    if (data.result) {
+      const balanceEth = Number(BigInt(data.result)) / 1e18;
+      document.getElementById("walletBalance").innerText =
+        `Balance: ${balanceEth.toFixed(4)} ETH`;
+    } else {
+      document.getElementById("walletBalance").innerText = "⚠️ Balance fetch failed.";
+    }
+  } catch (err) {
+    console.error("Balance fetch error:", err);
+    document.getElementById("walletBalance").innerText = "⚠️ Error fetching balance.";
+  }
+}
+</script>
+{% endblock %}
+
+

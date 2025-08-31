@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Groq Chatbot{% endblock %}
+
+{% block content %}
+<div class="container py-5"
+     x-data="groqChatApp()"
+     x-init="init()">
+
+  <!-- Title -->
+  <h1 class="text-center text-primary fw-bold mb-3">🤖 Groq Chatbot</h1>
+  <p class="text-muted text-center">Talk to Groq LLaMA-3 directly in your browser.</p>
+
+  <!-- Chat Box -->
+  <div id="chat-box"
+       class="border rounded p-3 mb-3 bg-light shadow-sm"
+       style="height:400px; overflow-y:auto;">
+    <div class="text-muted">💬 Start chatting below 👇</div>
+    <template x-for="msg in messages" :key="msg.id">
+      <div class="mb-2">
+        <strong x-text="msg.role + ':'"></strong>
+        <span x-text="msg.text"></span>
+      </div>
+    </template>
+  </div>
+
+  <!-- Chat Input -->
+  <form @submit.prevent="sendMessage" class="d-flex">
+    <input x-model="input"
+           class="form-control me-2"
+           placeholder="Type a message..."
+           :disabled="loading">
+    <button type="submit"
+            class="btn btn-primary"
+            :disabled="loading">
+      <span x-show="!loading">Send</span>
+      <span x-show="loading">⏳</span>
+    </button>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function groqChatApp() {
+  return {
+    input: "",
+    messages: [],
+    loading: false,
+    counter: 0,
+
+    init() {
+      console.log("Groq Chat ready");
+    },
+
+    appendMessage(role, text) {
+      this.messages.push({ id: this.counter++, role, text });
+      this.$nextTick(() => {
+        const chatBox = document.getElementById("chat-box");
+        chatBox.scrollTop = chatBox.scrollHeight;
+      });
+    },
+
+    async sendMessage() {
+      if (!this.input.trim()) return;
+      const userMsg = this.input;
+      this.appendMessage("You", userMsg);
+      this.input = "";
+      this.loading = true;
+
+      try {
+        const res = await fetch("/api/groq/chat/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: userMsg })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          this.appendMessage("Groq", data.answer);
+        } else {
+          this.appendMessage("Error", data.error || "Something went wrong");
+        }
+      } catch (err) {
+        this.appendMessage("Error", "❌ " + err.message);
+      } finally {
+        this.loading = false;
+      }
+    }
+  }
+}
+</script>
+{% endblock %}

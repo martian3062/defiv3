@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Health Check{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <h2 class="text-center text-primary fw-bold">🚦 System Health Monitor</h2>
+  <p class="text-muted text-center">Live monitoring of QuickNode + Randomized Crypto Latency Data</p>
+
+  <!-- Threshold input -->
+  <div class="row mb-3">
+    <div class="col-md-4 offset-md-4">
+      <label class="fw-semibold">Latency Threshold (ms):</label>
+      <input type="number" id="threshold" class="form-control" value="500">
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="row">
+    <div class="col-md-6 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">QuickNode Latency</h5>
+          <canvas id="latencyChart" height="100"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Top Crypto Latencies (Mock)</h5>
+          <canvas id="cryptoChart" height="100"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div id="status" class="mt-3 text-center fw-bold alert alert-info">Loading...</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let quickCtx = document.getElementById('latencyChart').getContext('2d');
+let cryptoCtx = document.getElementById('cryptoChart').getContext('2d');
+
+// QuickNode Latency Chart
+let latencyChart = new Chart(quickCtx, {
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: [{
+            label: 'QuickNode Latency (ms)',
+            data: [],
+            borderColor: '#0d6efd',
+            backgroundColor: 'rgba(13, 110, 253, 0.2)',
+            fill: true,
+            tension: 0.3
+        }]
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: true }}}
+});
+
+// Crypto Latency Chart (randomized mock)
+let cryptoChart = new Chart(cryptoCtx, {
+    type: 'bar',
+    data: {
+        labels: ["BASE", "ETH", "BTC", "SOL", "MATIC"],
+        datasets: [{
+            label: 'Latency (ms)',
+            data: [0, 0, 0, 0, 0],
+            backgroundColor: ['#6610f2','#198754','#dc3545','#fd7e14','#0dcaf0']
+        }]
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: true }}}
+});
+
+async function fetchData() {
+    try {
+        // --- QuickNode Health ---
+        const resp = await fetch("/healthz/data/");
+        const data = await resp.json();
+
+        let threshold = parseInt(document.getElementById("threshold").value);
+
+        latencyChart.data.labels.push(new Date(data.timestamp * 1000).toLocaleTimeString());
+        latencyChart.data.datasets[0].data.push(data.latency_ms);
+
+        if (latencyChart.data.labels.length > 20) {
+            latencyChart.data.labels.shift();
+            latencyChart.data.datasets[0].data.shift();
+        }
+        latencyChart.update();
+
+        // Status Text
+        let statusMsg = `DB: ${data.db ? "✅ OK" : "❌ Fail"} | Web3: ${data.web3 ? "✅ OK" : "❌ Fail"} | Latency: ${data.latency_ms} ms`;
+        if (data.latency_ms > threshold) {
+            statusMsg += " ⚠️ Above threshold!";
+            document.getElementById("status").className = "alert alert-danger text-center fw-bold";
+        } else {
+            document.getElementById("status").className = "alert alert-success text-center fw-bold";
+        }
+        document.getElementById("status").innerText = statusMsg;
+
+        // --- Random Crypto Latencies ---
+        cryptoChart.data.datasets[0].data = Array.from({length:5}, () => Math.floor(Math.random()*300)+50);
+        cryptoChart.update();
+
+    } catch (err) {
+        console.error(err);
+        document.getElementById("status").className = "alert alert-danger text-center fw-bold";
+        document.getElementById("status").innerText = "❌ Error fetching health data.";
+    }
+}
+
+setInterval(fetchData, 5000);
+fetchData();
+</script>
+{% endblock %}
+

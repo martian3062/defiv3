@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}WalletConnect QR | defiv2{% endblock %}
+
+{% block content %}
+<div class="container text-center py-5">
+  <h2 class="fw-bold text-success">📱 WalletConnect QR</h2>
+  <p class="text-muted">Scan with Coinbase or MetaMask Mobile</p>
+
+  <button class="btn btn-lg btn-success" onclick="loadQR()">Generate QR</button>
+
+  <div class="mt-4">
+    <img id="qrImg" style="max-width:300px; display:none;" />
+    <p id="uriText" class="small text-muted"></p>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadQR() {
+  const res = await fetch("/api/wallet/qr/");
+  const data = await res.json();
+  document.getElementById("qrImg").src = data.qr;
+  document.getElementById("qrImg").style.display = "block";
+  document.getElementById("uriText").innerText = data.uri;
+}
+</script>
+{% endblock %}

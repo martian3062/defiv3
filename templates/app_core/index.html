@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Home | defiv2{% endblock %}
+
+{% block content %}
+<div class="container py-5 text-center"
+     x-data="{ executing: false, output: '', showUpcoming: false, chart: null }">
+
+  <!-- Title -->
+  <h1 class="display-4 fw-bold text-primary">defiv2 Assistant Demo</h1>
+  <p class="lead text-muted">
+    Showcasing: <strong>Explain → Simulate → Sign → Broadcast → Monitor</strong>
+  </p>
+
+  <!-- Feature Buttons -->
+  <div class="row mt-5 g-3">
+    <div class="col-md-3">
+      <a href="/wallet/" class="btn btn-lg btn-primary w-100 shadow-sm">
+        💳 Wallet Demo
+      </a>
+    </div>
+    <div class="col-md-3">
+      <a href="/healthz/" class="btn btn-lg btn-success w-100 shadow-sm">
+        🩺 Health Check
+      </a>
+    </div>
+    <div class="col-md-3">
+      <a href="/groq/test/ui/" class="btn btn-lg btn-info w-100 shadow-sm">
+        ⚡ Groq Test
+      </a>
+    </div>
+    <div class="col-md-3">
+      <a href="/simulate/" class="btn btn-lg btn-warning w-100 shadow-sm">
+        🔬 QuickNode Simulate
+      </a>
+    </div>
+  </div>
+
+  <!-- Groq Chatbot Highlight -->
+  <div class="mt-5">
+    <a href="/groq/chat/" class="btn btn-lg btn-secondary px-5 shadow-sm">
+      🤖 Groq Chatbot
+    </a>
+  </div>
+
+  <hr class="my-5">
+
+  <!-- Execute Section -->
+  <h3 class="fw-semibold">⚙️ Execute via n8n</h3>
+  <form class="d-flex justify-content-center mt-3"
+        @submit.prevent="
+          executing = true;
+          output = '';
+          fetch('/execute/', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({intent: $refs.intent.value})
+          })
+          .then(res => res.json())
+          .then(data => output = JSON.stringify(data, null, 2))
+          .catch(err => output = '❌ Error: ' + err)
+          .finally(() => executing = false)">
+    <input x-ref="intent"
+           class="form-control w-50 me-2"
+           placeholder="swap 1 USDC→ETH">
+    <button type="submit" class="btn btn-dark" :disabled="executing">
+      <span x-show="!executing">Execute</span>
+      <span x-show="executing">⏳ Running...</span>
+    </button>
+  </form>
+
+  <pre class="text-start mt-4 bg-light p-3 border rounded shadow-sm"
+       style="max-height: 300px; overflow:auto;"
+       x-text="output"></pre>
+
+  <hr class="my-5">
+
+  <!-- Upcoming Section -->
+  <button class="btn btn-lg text-white mb-4"
+          style="background: linear-gradient(90deg,#ff6a00,#ee0979); box-shadow:0 0 20px rgba(255,105,180,.7); animation: pulse 2s infinite;"
+          @click="showUpcoming = !showUpcoming;
+                  if(showUpcoming && !chart){ initUpcomingChart(); }">
+    🚀 Upcoming Section
+  </button>
+
+  <div class="mb-5 p-4 border rounded bg-light shadow-sm"
+       x-show="showUpcoming"
+       x-transition>
+    <h2 class="fw-bold text-dark">🤖 AI Agents & Semi-Autonomy</h2>
+    <p class="text-muted">
+      Roadmap: <strong>semi-autonomy with AI agents</strong> (Eliza + LangGraph).
+      Agents help reduce <em>gas fees</em>, minimize <em>latency</em>, and cut down on
+      <em>human intervention</em>, giving DeFi more stability in volatile markets.
+    </p>
+    <canvas id="upcomingChart" height="100"></canvas>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+@keyframes pulse {
+  0% { box-shadow: 0 0 10px rgba(255,105,180,.5); }
+  50% { box-shadow: 0 0 25px rgba(255,105,180,.9); }
+  100% { box-shadow: 0 0 10px rgba(255,105,180,.5); }
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function initUpcomingChart() {
+  const ctx = document.getElementById('upcomingChart').getContext('2d');
+  const labels = Array.from({length: 10}, (_, i) => "T+" + i);
+  const randomData = Array.from({length: 10}, () => Math.floor(Math.random() * 100));
+
+  window.chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: "Projected Latency Reduction (%)",
+        data: randomData,
+        borderColor: "#0d6efd",
+        backgroundColor: "rgba(13, 110, 253, 0.2)",
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: { responsive: true }
+  });
+
+  // Randomly update data every 3s
+  setInterval(() => {
+    const val = Math.floor(Math.random() * 100);
+    window.chart.data.labels.push("T+" + (window.chart.data.labels.length));
+    window.chart.data.datasets[0].data.push(val);
+
+    if (window.chart.data.labels.length > 15) {
+      window.chart.data.labels.shift();
+      window.chart.data.datasets[0].data.shift();
+    }
+    window.chart.update();
+  }, 3000);
+}
+</script>
+{% endblock %}
+
